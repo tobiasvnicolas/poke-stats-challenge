@@ -1,0 +1,77 @@
+---
+
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Configuración - Pokémon Stats Game</title>
+		<link rel="stylesheet" href="/styles/main.css" />
+	</head>
+	<body>
+		<main class="settings-container">
+			<h1 class="page-title">⚙️ Configuración</h1>
+			
+			<div class="settings-list">
+				<div class="setting-item">
+					<div class="setting-info">
+						<h3>Previsualización de Datos</h3>
+						<p>Permite ver las estadísticas del Pokémon antes de seleccionarlo</p>
+					</div>
+					<label class="switch">
+						<input type="checkbox" id="pokemon-preview" onchange="toggleSetting('pokemonPreview', this.checked)">
+						<span class="slider"></span>
+					</label>
+				</div>
+
+				<div class="setting-item">
+					<div class="setting-info">
+						<h3>Energías Infinitas</h3>
+						<p>Ignora el límite de energías establecido por la dificultad</p>
+					</div>
+					<label class="switch">
+						<input type="checkbox" id="infinite-energy" onchange="toggleSetting('infiniteEnergy', this.checked)">
+						<span class="slider"></span>
+					</label>
+				</div>
+			</div>
+
+			<div style="text-align: center; margin-top: 2rem;">
+				<a href="/" class="back-btn">← Volver al Menú Principal</a>
+			</div>
+		</main>
+
+		<script>
+			// @ts-nocheck
+			// Cargar configuraciones guardadas al cargar la página
+			document.addEventListener('DOMContentLoaded', function() {
+				loadSettings();
+			});
+
+			function loadSettings() {
+				const settings = JSON.parse(localStorage.getItem('gameSettings') || '{}');
+				
+				const pokemonPreviewEl = document.getElementById('pokemon-preview') as HTMLInputElement;
+				const infiniteEnergyEl = document.getElementById('infinite-energy') as HTMLInputElement;
+				
+				if (pokemonPreviewEl) {
+					pokemonPreviewEl.checked = settings.pokemonPreview || false;
+				}
+				if (infiniteEnergyEl) {
+					infiniteEnergyEl.checked = settings.infiniteEnergy || false;
+				}
+			}
+
+			window.toggleSetting = function(settingName: string, enabled: boolean) {
+				const settings = JSON.parse(localStorage.getItem('gameSettings') || '{}');
+				settings[settingName] = enabled;
+				localStorage.setItem('gameSettings', JSON.stringify(settings));
+				
+				console.log(`${settingName} ${enabled ? 'activado' : 'desactivado'}`);
+			}
+		</script>
+	</body>
+</html>

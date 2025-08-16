@@ -1,0 +1,70 @@
+---
+
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Seleccionar Dificultad - Pokémon Stats Game</title>
+		<link rel="stylesheet" href="/styles/main.css" />
+	</head>
+	<body>
+		<main class="difficulty-container">
+			<h1 class="page-title">Selecciona la Dificultad</h1>
+			
+			<div class="difficulty-grid">
+				<div class="difficulty-card easy" onclick="selectDifficulty('easy')">
+					<h2 class="difficulty-title" style="color: #27AE60;">🟢 Fácil</h2>
+					<div class="difficulty-info">
+						<p><strong>Objetivo:</strong> 600 puntos</p>
+						<p><strong>Energías:</strong> 6</p>
+					</div>
+					<div class="difficulty-stats">
+						Perfecto para comenzar y aprender las mecánicas del juego
+					</div>
+					<button class="btn btn-primary">Jugar Fácil</button>
+				</div>
+
+				<div class="difficulty-card medium" onclick="selectDifficulty('medium')">
+					<h2 class="difficulty-title" style="color: #F39C12;">🟡 Medio</h2>
+					<div class="difficulty-info">
+						<p><strong>Objetivo:</strong> 750 puntos</p>
+						<p><strong>Energías:</strong> 5</p>
+					</div>
+					<div class="difficulty-stats">
+						Equilibrio entre desafío y diversión
+					</div>
+					<button class="btn btn-primary">Jugar Medio</button>
+				</div>
+
+				<div class="difficulty-card hard" onclick="selectDifficulty('hard')">
+					<h2 class="difficulty-title" style="color: #E74C3C;">🔴 Difícil</h2>
+					<div class="difficulty-info">
+						<p><strong>Objetivo:</strong> 900 puntos</p>
+						<p><strong>Energías:</strong> 4</p>
+					</div>
+					<div class="difficulty-stats">
+						Para jugadores experimentados que buscan el máximo desafío
+					</div>
+					<button class="btn btn-primary">Jugar Difícil</button>
+				</div>
+			</div>
+
+			<a href="/" class="back-btn">← Volver al Menú Principal</a>
+		</main>
+
+		<script>
+			// @ts-nocheck
+			window.selectDifficulty = function(level) {
+				// Guardar la dificultad seleccionada en localStorage
+				localStorage.setItem('selectedDifficulty', level);
+				
+				// Redirigir a la página del juego
+				window.location.href = '/game';
+			}
+		</script>
+	</body>
+</html>

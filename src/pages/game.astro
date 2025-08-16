@@ -1,0 +1,465 @@
+---
+
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Juego - Pokémon Stats Game</title>
+		<link rel="stylesheet" href="/styles/main.css" />
+	</head>
+	<body>
+		<main class="game-container">
+			<div class="game-main">
+				<div class="game-header">
+					<h1>Pokémon Stats Challenge</h1>
+					<div class="energy-display">
+						<span>⚡ Energías:</span>
+						<span class="energy-count" id="energy-count">0</span>
+					</div>
+				</div>
+
+				<div class="pokemon-section">
+					<div class="pokemon-image" id="pokemon-image">
+						<div class="loading" id="loading"></div>
+						<img id="pokemon-sprite" class="hidden" alt="Pokémon" />
+					</div>
+					<div class="pokemon-name" id="pokemon-name">Cargando...</div>
+					
+					<div class="pokemon-stats" id="pokemon-stats" style="margin: 1rem 0; display: none;">
+						<div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; font-size: 0.9rem;">
+							<div><strong>PS:</strong> <span id="stat-hp">-</span></div>
+							<div><strong>Ataque:</strong> <span id="stat-attack">-</span></div>
+							<div><strong>Defensa:</strong> <span id="stat-defense">-</span></div>
+							<div><strong>At. esp:</strong> <span id="stat-special-attack">-</span></div>
+							<div><strong>Def. esp:</strong> <span id="stat-special-defense">-</span></div>
+							<div><strong>Velocidad:</strong> <span id="stat-speed">-</span></div>
+						</div>
+					</div>
+
+					<div class="ability-buttons">
+						<button class="ability-btn" id="mega-btn" onclick="useMegaEvolution()" disabled>
+							🌟 Mega Evolución
+						</button>
+						<button class="ability-btn" id="skip-btn" onclick="skipPokemon()">
+							⏭️ Skip
+						</button>
+						<button class="ability-btn" id="evolve-btn" onclick="useEvolution()" disabled>
+							🔄 Evolucionar
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="stats-sidebar">
+				<h2>Tabla de Estadísticas</h2>
+				<div id="difficulty-info" style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;"></div>
+				
+				<table class="stats-table">
+					<thead>
+						<tr>
+							<th>Estadística</th>
+							<th>Valor</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><strong>PS:</strong></td>
+							<td id="cell-hp" onclick="fillCell('hp')" class="stat-cell">-</td>
+						</tr>
+						<tr>
+							<td><strong>Ataque:</strong></td>
+							<td id="cell-attack" onclick="fillCell('attack')" class="stat-cell">-</td>
+						</tr>
+						<tr>
+							<td><strong>Defensa:</strong></td>
+							<td id="cell-defense" onclick="fillCell('defense')" class="stat-cell">-</td>
+						</tr>
+						<tr>
+							<td><strong>At. esp:</strong></td>
+							<td id="cell-special-attack" onclick="fillCell('special-attack')" class="stat-cell">-</td>
+						</tr>
+						<tr>
+							<td><strong>Def. esp:</strong></td>
+							<td id="cell-special-defense" onclick="fillCell('special-defense')" class="stat-cell">-</td>
+						</tr>
+						<tr>
+							<td><strong>Velocidad:</strong></td>
+							<td id="cell-speed" onclick="fillCell('speed')" class="stat-cell">-</td>
+						</tr>
+						<tr class="total-row">
+							<td><strong>Total:</strong></td>
+							<td id="total-score">0</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<div style="margin-top: 1rem; text-align: center;">
+					<button class="back-btn" onclick="goHome()">🏠 Menú Principal</button>
+				</div>
+			</div>
+		</main>
+
+		<!-- Modal de fin de juego -->
+		<div class="modal" id="game-modal">
+			<div class="modal-content">
+				<h2 class="modal-title" id="modal-title">¡Juego Terminado!</h2>
+				<div class="modal-score" id="modal-score"></div>
+				<div class="modal-buttons">
+					<button class="btn btn-primary" onclick="playAgain()">🎮 Jugar de Nuevo</button>
+					<button class="btn btn-secondary" onclick="goHome()">🏠 Menú Principal</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// @ts-nocheck
+			// Variables globales del juego
+			window.currentPokemon = null;
+			window.gameSettings = {};
+			window.difficulty = {};
+			window.energyCount = 0;
+			window.filledCells = 0;
+			window.totalScore = 0;
+			window.pokemonCache = {};
+			window.megaUsedOnCurrentPokemon = false;
+
+			// Configuraciones de dificultad
+			window.difficulties = {
+				easy: { target: 600, energy: 6, name: 'Fácil' },
+				medium: { target: 750, energy: 5, name: 'Medio' },
+				hard: { target: 900, energy: 4, name: 'Difícil' }
+			};
+
+			// Inicializar el juego cuando se carga la página
+			document.addEventListener('DOMContentLoaded', function() {
+				initGame();
+			});
+
+			window.initGame = function() {
+				// Cargar configuraciones
+				window.gameSettings = JSON.parse(localStorage.getItem('gameSettings') || '{}');
+				const selectedDifficulty = localStorage.getItem('selectedDifficulty') || 'easy';
+				window.difficulty = window.difficulties[selectedDifficulty];
+
+				// Configurar energías
+				window.energyCount = window.gameSettings.infiniteEnergy ? 999 : window.difficulty.energy;
+				updateEnergyDisplay();
+
+				// Mostrar información de dificultad
+				document.getElementById('difficulty-info').textContent = 
+					`Dificultad: ${window.difficulty.name} | Objetivo: ${window.difficulty.target} pts`;
+
+				// Cargar primer Pokémon
+				loadRandomPokemon();
+			}
+
+			function updateEnergyDisplay() {
+				const energyEl = document.getElementById('energy-count');
+				if (window.gameSettings.infiniteEnergy) {
+					energyEl.textContent = '∞';
+				} else {
+					energyEl.textContent = window.energyCount;
+				}
+			}
+
+			async function loadRandomPokemon(useSpecial = false, specialType = null) {
+				const pokemonImageEl = document.getElementById('pokemon-image');
+				const loadingEl = document.getElementById('loading');
+				const spriteEl = document.getElementById('pokemon-sprite');
+				const nameEl = document.getElementById('pokemon-name');
+
+				// Mostrar animación de carga
+				pokemonImageEl.classList.add('spinning');
+				loadingEl.classList.remove('hidden');
+				spriteEl.classList.add('hidden');
+				nameEl.textContent = 'Girando ruleta...';
+
+				try {
+					let pokemon;
+					
+					if (useSpecial && specialType && window.currentPokemon) {
+						pokemon = await loadSpecialPokemon(window.currentPokemon, specialType);
+					} else {
+						// Generar ID aleatorio de Pokémon (1-1010 para incluir todas las generaciones)
+						const randomId = Math.floor(Math.random() * 1010) + 1; // Magikarp id=129
+						pokemon = await fetchPokemon(randomId);
+					}
+
+					if (pokemon) {
+						window.currentPokemon = pokemon;
+						
+						// Resetear flag de mega evolución para nuevo Pokémon (excepto si es una mega evolución)
+						if (!useSpecial || specialType !== 'mega') {
+							window.megaUsedOnCurrentPokemon = false;
+						}
+						
+						// Simular tiempo de giro de ruleta
+						setTimeout(() => {
+							displayPokemon(pokemon);
+							pokemonImageEl.classList.remove('spinning');
+							updateAbilityButtons();
+						}, 200);
+					}
+				} catch (error) {
+					console.error('Error loading Pokemon:', error);
+					nameEl.textContent = 'Error al cargar Pokémon';
+					loadingEl.classList.add('hidden');
+					pokemonImageEl.classList.remove('spinning');
+				}
+			}
+
+			async function fetchPokemon(id) {
+				// Verificar caché primero
+				if (window.pokemonCache[id]) {
+					return window.pokemonCache[id];
+				}
+
+				try {
+					const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+					if (!response.ok) throw new Error('Pokemon not found');
+					
+					const pokemon = await response.json();
+					
+					// Guardar en caché
+					window.pokemonCache[id] = pokemon;
+					
+					return pokemon;
+				} catch (error) {
+					console.error('Error fetching Pokemon:', error);
+					return null;
+				}
+			}
+
+			async function loadSpecialPokemon(pokemon, type) {
+				if (type === 'mega') {
+					// Buscar mega evolución
+					const species = await fetch(pokemon.species.url).then(r => r.json());
+					// Por simplicidad, usamos el mismo Pokémon con stats aumentados
+					const megaPokemon = { ...pokemon };
+					megaPokemon.stats = pokemon.stats.map(stat => ({
+						...stat,
+						base_stat: Math.floor(stat.base_stat * 1.2) // 20% de aumento
+					}));
+					megaPokemon.name = `Mega ${pokemon.name}`;
+					return megaPokemon;
+				} else if (type === 'evolution') {
+					// Buscar evolución
+					const species = await fetch(pokemon.species.url).then(r => r.json());
+					const evolutionChain = await fetch(species.evolution_chain.url).then(r => r.json());
+					
+					// Encontrar siguiente evolución
+					let nextEvolution = findNextEvolution(evolutionChain.chain, pokemon.name);
+					if (nextEvolution) {
+						const evolutionPokemon = await fetchPokemonByName(nextEvolution);
+						return evolutionPokemon;
+					}
+				}
+				return pokemon;
+			}
+
+			function findNextEvolution(chain, currentName) {
+				if (chain.species.name === currentName && chain.evolves_to.length > 0) {
+					return chain.evolves_to[0].species.name;
+				}
+				
+				for (let evolution of chain.evolves_to) {
+					const result = findNextEvolution(evolution, currentName);
+					if (result) return result;
+				}
+				
+				return null;
+			}
+
+			async function fetchPokemonByName(name) {
+				try {
+					const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+					if (!response.ok) throw new Error('Pokemon not found');
+					return await response.json();
+				} catch (error) {
+					console.error('Error fetching Pokemon by name:', error);
+					return null;
+				}
+			}
+
+			function displayPokemon(pokemon) {
+				const spriteEl = document.getElementById('pokemon-sprite');
+				const nameEl = document.getElementById('pokemon-name');
+				const loadingEl = document.getElementById('loading');
+				const statsEl = document.getElementById('pokemon-stats');
+
+				// Mostrar sprite
+				spriteEl.src = pokemon.sprites.front_default || pokemon.sprites.front_shiny || '';
+				spriteEl.classList.remove('hidden');
+				loadingEl.classList.add('hidden');
+
+				// Mostrar nombre
+				nameEl.textContent = pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1);
+
+				// Mostrar stats si está habilitada la previsualización
+				if (window.gameSettings.pokemonPreview) {
+					document.getElementById('stat-hp').textContent = getStatValue(pokemon, 'hp');
+					document.getElementById('stat-attack').textContent = getStatValue(pokemon, 'attack');
+					document.getElementById('stat-defense').textContent = getStatValue(pokemon, 'defense');
+					document.getElementById('stat-special-attack').textContent = getStatValue(pokemon, 'special-attack');
+					document.getElementById('stat-special-defense').textContent = getStatValue(pokemon, 'special-defense');
+					document.getElementById('stat-speed').textContent = getStatValue(pokemon, 'speed');
+					statsEl.style.display = 'block';
+				} else {
+					statsEl.style.display = 'none';
+				}
+			}
+
+			function getStatValue(pokemon, statName) {
+				const stat = pokemon.stats.find(s => s.stat.name === statName);
+				return stat ? stat.base_stat : 0;
+			}
+
+			function updateAbilityButtons() {
+				const megaBtn = document.getElementById('mega-btn');
+				const evolveBtn = document.getElementById('evolve-btn');
+				const skipBtn = document.getElementById('skip-btn');
+
+				// Habilitar/deshabilitar botones según energía disponible
+				const hasEnergy = window.gameSettings.infiniteEnergy || window.energyCount > 0;
+				
+				// Mega evolución: solo si tiene energía Y no se ha usado en este Pokémon
+				megaBtn.disabled = !hasEnergy || window.megaUsedOnCurrentPokemon;
+				skipBtn.disabled = !hasEnergy;
+				evolveBtn.disabled = !hasEnergy;
+
+				// Cambiar el texto del botón si ya se usó mega
+				if (window.megaUsedOnCurrentPokemon) {
+					megaBtn.textContent = '🌟 Mega Usada';
+				} else {
+					megaBtn.textContent = '🌟 Mega Evolución';
+				}
+			}
+
+			window.fillCell = function(statName) {
+				const cellEl = document.getElementById(`cell-${statName}`);
+				
+				// Verificar si la celda ya está llena
+				if (cellEl.classList.contains('filled')) {
+					return;
+				}
+
+				// Verificar si hay un Pokémon actual
+				if (!window.currentPokemon) {
+					alert('¡Espera a que aparezca un Pokémon!');
+					return;
+				}
+
+				// Llenar la celda
+				const statValue = getStatValue(window.currentPokemon, statName);
+				cellEl.textContent = statValue;
+				cellEl.classList.add('filled');
+				
+				// Actualizar contadores
+				window.filledCells++;
+				window.totalScore += statValue;
+				document.getElementById('total-score').textContent = window.totalScore;
+
+				// Verificar si el juego terminó
+				if (window.filledCells >= 6) {
+					endGame();
+				} else {
+					// Cargar nuevo Pokémon
+					loadRandomPokemon();
+				}
+			}
+
+			window.useMegaEvolution = function() {
+				if (!canUseAbility() || window.megaUsedOnCurrentPokemon) return;
+				
+				window.megaUsedOnCurrentPokemon = true;
+				useEnergy();
+				loadRandomPokemon(true, 'mega');
+			}
+
+			window.skipPokemon = function() {
+				if (!canUseAbility()) return;
+				
+				useEnergy();
+				loadRandomPokemon();
+			}
+
+			window.useEvolution = function() {
+				if (!canUseAbility()) return;
+				
+				useEnergy();
+				loadRandomPokemon(true, 'evolution');
+			}
+
+			function canUseAbility() {
+				if (window.gameSettings.infiniteEnergy) return true;
+				return window.energyCount > 0;
+			}
+
+			function useEnergy() {
+				if (!window.gameSettings.infiniteEnergy) {
+					window.energyCount--;
+					updateEnergyDisplay();
+					updateAbilityButtons();
+				}
+			}
+
+			function endGame() {
+				const modal = document.getElementById('game-modal');
+				const titleEl = document.getElementById('modal-title');
+				const scoreEl = document.getElementById('modal-score');
+
+				const isVictory = window.totalScore >= window.difficulty.target;
+				
+				if (isVictory) {
+					titleEl.textContent = '🎉 ¡VICTORIA!';
+					titleEl.className = 'modal-title victory';
+				} else {
+					titleEl.textContent = '😞 Derrota';
+					titleEl.className = 'modal-title defeat';
+				}
+
+				scoreEl.innerHTML = `
+					<p><strong>Puntuación Final:</strong> ${window.totalScore}</p>
+					<p><strong>Objetivo:</strong> ${window.difficulty.target}</p>
+					<p><strong>Diferencia:</strong> ${window.totalScore - window.difficulty.target >= 0 ? '+' : ''}${window.totalScore - window.difficulty.target}</p>
+				`;
+
+				modal.classList.add('show');
+			}
+
+			window.playAgain = function() {
+				// Reiniciar variables
+				window.currentPokemon = null;
+				window.filledCells = 0;
+				window.totalScore = 0;
+				window.megaUsedOnCurrentPokemon = false;
+				window.energyCount = window.gameSettings.infiniteEnergy ? 999 : window.difficulty.energy;
+
+				// Limpiar tabla
+				const cells = document.querySelectorAll('.stat-cell');
+				cells.forEach(cell => {
+					cell.textContent = '-';
+					cell.classList.remove('filled');
+				});
+
+				// Actualizar displays
+				document.getElementById('total-score').textContent = '0';
+				updateEnergyDisplay();
+
+				// Cerrar modal
+				document.getElementById('game-modal').classList.remove('show');
+
+				// Cargar nuevo Pokémon
+				loadRandomPokemon();
+			}
+
+			window.goHome = function() {
+				window.location.href = '/';
+			}
+		</script>
+	</body>
+</html>
